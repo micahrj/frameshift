@@ -2,6 +2,7 @@ use std::any::Any;
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 use std::ops::{Deref, DerefMut};
+use std::panic::catch_unwind;
 use std::ptr::NonNull;
 
 pub struct Frame<F, R>
@@ -60,8 +61,10 @@ where
     R: Resume<F> + ?Sized,
 {
     fn drop(&mut self) {
+        let result = catch_unwind(|| panic!("Frame was dropped")).unwrap_err();
+
         let frame = unsafe { Frame::from_raw(self.ptr.as_ptr()) };
-        R::cancel(frame, Box::new("Frame was dropped"))
+        R::cancel(frame, result)
     }
 }
 
